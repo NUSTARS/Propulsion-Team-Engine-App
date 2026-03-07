@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <title>engiNUity</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <h1>engiNUity Control Center</h1>
+    <div id='canvas-division'>
+    <!-- Canvases will be added here -->
+      <div id='switch-division'>
+      <!-- Switches will be added here -->
+      </div>
+  </div>
+	<!-- <canvas id="readings"></canvas> -->
+  
+	<script src="./node_modules/chart.js/dist/chart.umd.min.js"></script>
+	<script src="./renderer.js"></script>
+  <!--
+  <input type="checkbox" id="solenoid-1">
+    <label for="solenoid-1">Solenoid Valve 1</label>
+  <input type="checkbox" id="solenoid-2">
+    <label for="solenoid-2">Solenoid Valve 2</label>
+  <input type="checkbox" id="motorized-1">
+    <label for="motorized-1">Motorized Valve 1</label>
+  <input type="checkbox" id="motorized-2">
+    <label for="motorized-2">Motorized Valve 2</label>
+  -->
+  </body>
+</html>

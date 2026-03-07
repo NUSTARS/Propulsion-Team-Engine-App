@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <title>engiNUity</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body id="mainMenuBody">
+    <h1>🚀 Welcome to engiNUity 🔥</h1>
+    <div id="mainMenuDiv">
+      <div>
+        <label for="serialport-select">Select a Serial Port: </label>
+        <select id="serialport-select" name="Serial Port">
+          <!-- Options determined via renderer.js -->
+        </select>
+        <button id="setup::reload-serialport-options">Reload Options</button> 
+      </div>
+      <div>
+        <label for="setup::csv-path">Enter log file name:</label><input type="text" id="setup::csv-path"> </input>
+        <span>.csv</span>
+      </div>
+      <div>
+        <button id="setup::init-engine-comms">Initialize Engine Communication</button> <br />
+      </div>
+    </div>
+    <div class="coolCircleHolder">
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+      <div class="coolCircle"></div>
+    </div>
+  </body>
+  <script src="./setup_renderer.js"></script>
+</html>

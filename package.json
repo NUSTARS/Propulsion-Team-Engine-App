@@ -1,0 +1,20 @@
+{
+  "name": "engine-app",
+  "version": "1.0.0",
+  "description": "for nustars propulsion team",
+  "license": "MIT",
+  "author": "Burke Stanton",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^39.2.7"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "serialport": "^13.0.0"
+  }
+}
