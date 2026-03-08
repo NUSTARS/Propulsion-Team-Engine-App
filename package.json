@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "for nustars propulsion team",
   "license": "MIT",
-  "author": "Burke Stanton",
+  "author": "NUSTARS Propulsion Team",
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
