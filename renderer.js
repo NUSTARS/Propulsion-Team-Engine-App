@@ -63,7 +63,7 @@ class SensorGraph {
 		this.dataPoints.datasets[0].data.push(y);
 		this.dataPoints.datasets[0].data = this.dataPoints.datasets[0].data.slice(-50);
 		this.chart.data = this.dataPoints;
-		this.currentData.textContent = y.toString();
+		this.currentData.textContent = y.toFixed(3);
 		// perhaps remove this and put it in a callback?
 		this.chart.update();
 	}
@@ -170,14 +170,47 @@ servo1 = new BinaryActuator("Nitrogen Purge:", 0, 2)
 servo2 = new BinaryActuator("Nitrogen In:", 0, 3)
 sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
 
+// last minute calibration shit fixme
+const ethanolSolenoidPeriodButton = document.getElementById("ethanolSolenoidPeriod");
+ethanolSolenoidPeriodButton.addEventListener("click", () => {
+	console.log("time in");
+	controlState |= (1 << 1);
+	electronAPI.sendControlMessage(controlState);
+	setTimeout(() => {
+		console.log("timeout");
+		controlState &= ~(1 << 1);
+		electronAPI.sendControlMessage(controlState);
+	}, 1000);
+});
 
-
+const oxSolenoidPeriodButton = document.getElementById("oxSolenoidPeriod");
+oxSolenoidPeriodButton.addEventListener("click", () => {
+	console.log("time in");
+	controlState |= (1 << 0);
+	electronAPI.sendControlMessage(controlState);
+	setTimeout(() => {
+		console.log("timeout");
+		controlState &= ~(1 << 0);
+		electronAPI.sendControlMessage(controlState);
+	}, 1000);
+});
+let isLogging = false;
+const isLoggingCheckbox = document.getElementById("islogging");
+isLoggingCheckbox.addEventListener("change",() => {
+	isLogging = !isLogging;
+});
 
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
 
 let counter = 0;
+let isCalibrated = false;
+const num_calibration_samples = 100;
+let calibrationSamplesReceived = num_calibration_samples;
+
+const baseline_psi = 14.671;
 let phase = 0; // on phase 2 we take median of samples and then go back to phase 0
 const num_samples = 3;
+let calibrationBuffer = Array(num_graphs).fill(baseline_psi);
 let medianBuffer = Array(num_samples);
 for (let i = 0; i < num_graphs; i++) {
   medianBuffer[i] = new Array(num_graphs).fill(0);
@@ -205,17 +238,49 @@ window.electronAPI.onSerialPacket((packet) => {
 		counter += 1;
 	}*/
 	
+	let csvline = '';
 	
 	for (let i = 0; i < num_graphs; i++) {
 		current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8)); //this may be backwards
+		
+		// compute calibration offset
+		//console.log(calibrationSamplesReceived);
+		// if (calibrationSamplesReceived < num_calibration_samples) {
+		// 	calibrationBuffer[i] += current;
+		// 	if (calibrationSamplesReceived + 1 == num_calibration_samples) {
+		// 		calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
+		// 	}
+		// }
+
+		//else {
+			delta = calibrationBuffer[i] - baseline_psi;
+			//console.log(delta);
+			value = ((1-alpha) * current + alpha * prevArray[i]); 
+			graphs[i].addPoint(counter, value);
+			prevArray[i] = value;
+
+			// append to csv line
+			if (csvline == '') {
+			  csvline = csvline + value.toFixed(3);
+			}
+			else {
+				csvline = csvline + ', ' + String(value);
+			}
+		//}
 		//if (current < 0) current = 0;
-		value = (1-alpha) * current + alpha * prevArray[i];
-		graphs[i].addPoint(counter, value);
-		prevArray[i] = value;
+	
 	}
+	// log only if we weren't calibrating
+	
+	if (csvline != '' && isLogging) {
+		csvline = csvline + ', ' +  String(controlState) + '\n';
+		window.electronAPI.writeCSV(csvline);
+	}
+	
 	
 
 	counter += 1;
+	calibrationSamplesReceived += 1;
 	
 })
 

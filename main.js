@@ -121,6 +121,7 @@ function startLogging(csvPath) {
 			csvline = csvline + '\n';
 			
 			fs.appendFile(csvPath, csvline, (err) => {});
+			
 		}
 		
 		/*

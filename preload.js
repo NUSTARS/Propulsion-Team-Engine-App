@@ -5,6 +5,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 const { SerialPort } = require('serialport');
+const fs = require('node:fs')
 
 contextBridge.exposeInMainWorld('electronAPI', {
 	onSerialPacket: (callback) => ipcRenderer.on('serial-packet', (_event, value) => callback(value)),
@@ -12,4 +13,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	sendSerialPath: (path) => ipcRenderer.send('serial-path', path),
 	sendLoadMain: (csvPath) => ipcRenderer.send('load-main', csvPath),
 	sendControlMessage: (controlByte) => ipcRenderer.send('control-byte', controlByte),
+	writeCSV: (line) => fs.appendFile("./log.csv", line, (err) => console.log(err)),
 });
