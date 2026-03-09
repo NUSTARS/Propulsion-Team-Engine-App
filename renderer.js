@@ -180,7 +180,7 @@ ethanolSolenoidPeriodButton.addEventListener("click", () => {
 		console.log("timeout");
 		controlState &= ~(1 << 1);
 		electronAPI.sendControlMessage(controlState);
-	}, 1000);
+	}, 5000);
 });
 
 const oxSolenoidPeriodButton = document.getElementById("oxSolenoidPeriod");
@@ -192,7 +192,7 @@ oxSolenoidPeriodButton.addEventListener("click", () => {
 		console.log("timeout");
 		controlState &= ~(1 << 0);
 		electronAPI.sendControlMessage(controlState);
-	}, 1000);
+	}, 5000);
 });
 let isLogging = false;
 const isLoggingCheckbox = document.getElementById("islogging");
