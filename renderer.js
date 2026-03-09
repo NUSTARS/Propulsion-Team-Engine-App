@@ -164,11 +164,11 @@ for (let i = 0; i < num_graphs; i++) {
 	graphs.push(new SensorGraph(sensorNames[i], makePTInterpFn(1,maxPressures[i])));
 }
 
-solenoid1 = new BinaryActuator("Ox Solenoid:", 0, 0)
-solenoid2 = new BinaryActuator("Ethanol Solenoid:", 0, 1)
-servo1 = new BinaryActuator("Nitrogen Purge:", 0, 2)
-servo2 = new BinaryActuator("Nitrogen In:", 0, 3)
-sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
+solenoid1 = new BinaryActuator("Ox Solenoid (SV 2) On?:", 0, 0)
+solenoid2 = new BinaryActuator("Ethanol Solenoid (SV 1) On?:", 0, 1)
+servo1 = new BinaryActuator("Nitrogen Purge (SBV 2) On?:", 0, 2)
+servo2 = new BinaryActuator("Nitrogen In (SBV 1) On?:", 0, 3)
+sparkPlug = new BinaryActuator("Spark Plug On?:", 0, 4)
 
 // last minute calibration shit fixme
 const ethanolSolenoidPeriodButton = document.getElementById("ethanolSolenoidPeriod");
