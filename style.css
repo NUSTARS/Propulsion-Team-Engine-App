@@ -53,13 +53,13 @@ p {
     position:flex;
     align-self: flex-start;
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: auto 100px;
     background-color: #ffffff;
     color: black;
     width:max-content;
     border-radius: 4px;
     gap: 15px;
-    place-items: end;
+    place-items: start;
     align-items: center;
 }
 
@@ -72,6 +72,17 @@ p {
     width: 40px;
     height: 40px;
     margin: 0px;
+}
+
+#myCheckbox::after{
+    content: "CLOSED";
+    position: relative;
+    top: 15px;
+    left: 47px;
+}
+
+#myCheckbox:checked::after{
+    content: "OPEN";
 }
 
 .coolCircleHolder{
