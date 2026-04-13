@@ -85,6 +85,29 @@ p {
     content: "OPEN";
 }
 
+#emergencyShutoff{
+    border: 2px black;
+    padding: 10px;
+    width: 150px;
+    height: 100px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 10px;
+    font-size: large;
+    background-color: rgb(226, 49, 49);
+    color: rgb(255, 255, 255);
+}
+
+#emergencyShutoff:hover{
+    background-color: rgb(207, 66, 66);
+}
+
+#emergencyShutoff:active{
+    background-color: rgb(117, 24, 24);
+    color: rgb(172, 172, 172);
+}
+
 .coolCircleHolder{
     width: 100%;
     height: 100%;

@@ -9,6 +9,8 @@ canvasDiv.style.height = '200px';
 
 const switchDiv = document.getElementById('switch-division');
 
+let timeoutID = null;
+
 // SensorGraph class
 class SensorGraph {
 	// constructor
@@ -134,6 +136,10 @@ class BinaryActuator {
 			electronAPI.sendControlMessage(controlState);
 		})
 	}
+	uncheckBox(){
+		this.checkbox.checked = false;
+		this.on = false;
+	}
 }
 
 // makes a pressure transducer interpretation function, 
@@ -170,13 +176,29 @@ servo1 = new BinaryActuator("Nitrogen Purge (SBV 2):", 0, 2)
 servo2 = new BinaryActuator("Nitrogen In (SBV 1):", 0, 3)
 sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
 
+checkBoxes = [solenoid1, solenoid2, servo1, servo2, sparkPlug];
+
+// emergency shutoff functionality
+const emergencyShutoffButton = document.getElementById("emergencyShutoff");
+emergencyShutoffButton.addEventListener("click", () => {
+	if (timeoutID != null) {
+		clearTimeout(timeoutID);
+		timeoutID = null
+	 };
+	for (const box of checkBoxes){
+		box.uncheckBox();
+	}
+	controlState = 0;
+	electronAPI.sendControlMessage(0);
+});
+
 // last minute calibration shit fixme
 const ethanolSolenoidPeriodButton = document.getElementById("ethanolSolenoidPeriod");
 ethanolSolenoidPeriodButton.addEventListener("click", () => {
 	console.log("time in");
 	controlState |= (1 << 1);
 	electronAPI.sendControlMessage(controlState);
-	setTimeout(() => {
+	timeoutID = setTimeout(() => {
 		console.log("timeout");
 		controlState &= ~(1 << 1);
 		electronAPI.sendControlMessage(controlState);
@@ -188,7 +210,7 @@ oxSolenoidPeriodButton.addEventListener("click", () => {
 	console.log("time in");
 	controlState |= (1 << 0);
 	electronAPI.sendControlMessage(controlState);
-	setTimeout(() => {
+	timeoutID = setTimeout(() => {
 		console.log("timeout");
 		controlState &= ~(1 << 0);
 		electronAPI.sendControlMessage(controlState);
@@ -211,65 +233,90 @@ const baseline_psi = 14.671;
 let phase = 0; // on phase 2 we take median of samples and then go back to phase 0
 const num_samples = 3;
 let calibrationBuffer = Array(num_graphs).fill(baseline_psi);
-let medianBuffer = Array(num_samples);
+let medianBuffer = Array(num_graphs);
+
 for (let i = 0; i < num_graphs; i++) {
-  medianBuffer[i] = new Array(num_graphs).fill(0);
+	medianBuffer[i] = new Array(num_samples).fill(0);
 }
 
 window.electronAPI.onSerialPacket((packet) => {
 	
-	alpha = 0.9;
-	/*
+	alpha = 0.6;
+
+	// MEDIAN
 	for (let i = 0; i < num_graphs; i++) {
-		medianBuffer[phase][i] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
+		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
 		// only proceed if we have num_samples_samples
 		if (phase != num_samples - 1) {continue};
 		// compute median
-		medianBuffer[phase].sort();
-		let median = medianBuffer[phase][(num_samples-1)/2];
-		value = (1-alpha) * median + alpha * prevArray[i];
+		medianBuffer[i].sort((a, b) => a - b);
+		let median = medianBuffer[i][(num_samples-1)/2];
+
+	//  ========== AVERAgE ==========
+	//  let sum = 0;
+	//  for (int k = 0; k < num_samples; k++){
+	//  sum += medianBuffer[i][k]
+	//  }
+	//  let avg = sum / num_samples;
+	//  ======== END AVERAgE ========
+
+		let value = (1-alpha) * median + alpha * prevArray[i];
 		graphs[i].addPoint(counter,value);
 		prevArray[i] = value;
-		
 	}
-	
 	phase = (phase + 1) % num_samples;
 	if (phase == 0) {
 		counter += 1;
-	}*/
-	
-	let csvline = '';
+	}
+
+	// let csvline = '';
 	
 	for (let i = 0; i < num_graphs; i++) {
-		current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8)); //this may be backwards
+		const current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
 		
-		// compute calibration offset
-		//console.log(calibrationSamplesReceived);
-		// if (calibrationSamplesReceived < num_calibration_samples) {
-		// 	calibrationBuffer[i] += current;
-		// 	if (calibrationSamplesReceived + 1 == num_calibration_samples) {
-		// 		calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
-		// 	}
-		// }
+		const delta = current - calibrationBuffer[i] + baseline_psi;
 
-		//else {
-			delta = calibrationBuffer[i] - baseline_psi;
-			//console.log(delta);
-			value = ((1-alpha) * current + alpha * prevArray[i]); 
-			graphs[i].addPoint(counter, value);
-			prevArray[i] = value;
+		//console.log(delta);
 
-			// append to csv line
-			if (csvline == '') {
-			  csvline = csvline + value.toFixed(3);
-			}
-			else {
-				csvline = csvline + ', ' + String(value);
-			}
-		//}
-		//if (current < 0) current = 0;
-	
+		const value = alpha * delta + (1 - alpha) * prevArray[i];
+
+		graphs[i].addPoint(counter, value);
+
+		prevArray[i] = value;
 	}
+	counter++;
+
+	// 	// append to csv line
+	// 	csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
+		
+	// 	// compute calibration offset
+	// 	//console.log(calibrationSamplesReceived);
+	// 	// if (calibrationSamplesReceived < num_calibration_samples) {
+	// 	// 	calibrationBuffer[i] += current;
+	// 	// 	if (calibrationSamplesReceived + 1 == num_calibration_samples) {
+	// 	// 		calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
+	// 	// 	}
+	// 	// }
+
+	// 	//else {
+	// 		// delta = calibrationBuffer[i] - baseline_psi;
+	// 		// //console.log(delta);
+	// 		// value = ((1-alpha) * current + alpha * prevArray[i]);
+	// 		// graphs[i].addPoint(counter, value);
+	// 		// prevArray[i] = value;
+
+	// 		// // append to csv line
+	// 		// if (csvline == '') {
+	// 		//   csvline = csvline + value.toFixed(3);
+	// 		// }
+	// 		// else {
+	// 		// 	csvline = csvline + ', ' + String(value);
+	// 		// }
+
+	// 	//}
+	// 	//if (current < 0) current = 0;
+	
+	// }
 	// log only if we weren't calibrating
 	
 	if (csvline != '' && isLogging) {
@@ -277,14 +324,5 @@ window.electronAPI.onSerialPacket((packet) => {
 		window.electronAPI.writeCSV(csvline);
 	}
 	
-	
-
-	counter += 1;
 	calibrationSamplesReceived += 1;
-	
 })
-
-
-
-
-
