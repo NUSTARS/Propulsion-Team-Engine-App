@@ -162,7 +162,7 @@ function makePTInterpFn(resistance, maxPressure) {
 const num_graphs = 5;
 maxPressures = [600, 600, 600, 300, 300];
 prevArray = [0,0,0,0,0];
-sensorNames = ['ox upstream','chamber','ox stag','ethanol upstream','ethanol stag'];
+sensorNames = ['ox upstream','ox stag','ethanol stag','chamber','ethanol upstream'];
 
 
 let graphs = [];
@@ -326,7 +326,9 @@ window.electronAPI.onSerialPacket((packet) => {
 	 // ======== END AVERAgE ========
 
 		let value = (1-alpha) * median + alpha * prevArray[i]; 
-		graphs[i].addPoint(counter,value);
+		if (counter % 10 == 0) {
+			graphs[i].addPoint(counter,value);
+		}
 		prevArray[i] = value;
 	}
 	phase = (phase + 1) % num_samples;
