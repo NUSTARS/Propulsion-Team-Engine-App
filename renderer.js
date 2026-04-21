@@ -287,6 +287,22 @@ isLoggingCheckbox.addEventListener("change",() => {
 	isLogging = !isLogging;
 });
 
+let selectedFilter = 'median-ema';
+const filterButtons = document.querySelectorAll('.filter-button');
+
+function setSelectedFilter(filterName) {
+	selectedFilter = filterName;
+	filterButtons.forEach((button) => {
+		button.classList.toggle('active', button.dataset.filter === filterName);
+	});
+}
+
+filterButtons.forEach((button) => {
+	button.addEventListener('click', () => {
+		setSelectedFilter(button.dataset.filter);
+	});
+});
+
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
 
 let counter = 0;
@@ -299,56 +315,81 @@ let phase = 0; // on phase 2 we take median of samples and then go back to phase
 const num_samples = 3;
 let calibrationBuffer = Array(num_graphs).fill(baseline_psi);
 let medianBuffer = Array(num_graphs);
+const freqWindowSize = 16;
+const freqCutoffBin = 3;
+let frequencyBuffer = Array(num_graphs);
 
 for (let i = 0; i < num_graphs; i++) {
 	medianBuffer[i] = new Array(num_samples).fill(0);
+	frequencyBuffer[i] = new Array(freqWindowSize).fill(0);
+}
+
+function frequencyDomainLowPass(signalWindow, cutoffBin) {
+	const n = signalWindow.length;
+	let re = new Array(n).fill(0);
+	let im = new Array(n).fill(0);
+
+	for (let k = 0; k < n; k++) {
+		for (let t = 0; t < n; t++) {
+			const angle = (2 * Math.PI * k * t) / n;
+			re[k] += signalWindow[t] * Math.cos(angle);
+			im[k] -= signalWindow[t] * Math.sin(angle);
+		}
+	}
+
+	for (let k = 0; k < n; k++) {
+		const mirror = n - k;
+		if (k > cutoffBin && mirror > cutoffBin) {
+			re[k] = 0;
+			im[k] = 0;
+		}
+	}
+
+	let filtered = new Array(n).fill(0);
+	for (let t = 0; t < n; t++) {
+		let value = 0;
+		for (let k = 0; k < n; k++) {
+			const angle = (2 * Math.PI * k * t) / n;
+			value += re[k] * Math.cos(angle) - im[k] * Math.sin(angle);
+		}
+		filtered[t] = value / n;
+	}
+
+	return filtered[n - 1];
 }
 
 window.electronAPI.onSerialPacket((packet) => {
 	
 	alpha = 0.6;
+	let csvValues = [];
 
-	// MEDIAN
-	for (let i = 0; i < num_graphs; i++) {
-		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
-		// only proceed if we have num_samples_samples
-		if (phase != num_samples - 1) {continue};
-		// compute median
-		medianBuffer[i].sort((a, b) => a - b);
-		let median = medianBuffer[i][(num_samples-1)/2];
-
-	 // ========== AVERAgE ==========
-	 // let sum = 0;
-	 // for (int k = 0; k < num_samples; k++){
-	 //     sum += medianBuffer[i][k]
-	 // }
-	 // let avg = sum / num_samples;
-	 // ======== END AVERAgE ========
-
-		let value = (1-alpha) * median + alpha * prevArray[i]; 
-		graphs[i].addPoint(counter,value);
-		prevArray[i] = value;
-	}
-	phase = (phase + 1) % num_samples;
-	if (phase == 0) {
-		counter += 1;
-	}
-
-	// let csvline = '';
-	
 	for (let i = 0; i < num_graphs; i++) {
 		const current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
-		
-		const delta = current - calibrationBuffer[i] + baseline_psi;
+		const rawValue = current - calibrationBuffer[i] + baseline_psi;
+		frequencyBuffer[i].shift();
+		frequencyBuffer[i].push(rawValue);
 
-		//console.log(delta);
+		medianBuffer[i][phase] = rawValue;
+		const sortedSamples = [...medianBuffer[i]].sort((a, b) => a - b);
+		const medianValue = sortedSamples[(num_samples - 1) / 2];
 
-		const value = alpha * delta + (1 - alpha) * prevArray[i];
+		let value = rawValue;
+		if (selectedFilter === 'ema') {
+			value = alpha * rawValue + (1 - alpha) * prevArray[i];
+		} else if (selectedFilter === 'median') {
+			value = medianValue;
+		} else if (selectedFilter === 'median-ema') {
+			value = alpha * medianValue + (1 - alpha) * prevArray[i];
+		} else if (selectedFilter === 'freq') {
+			value = frequencyDomainLowPass(frequencyBuffer[i], freqCutoffBin);
+		}
 
 		graphs[i].addPoint(counter, value);
-
 		prevArray[i] = value;
+		csvValues.push(value.toFixed(3));
 	}
+
+	phase = (phase + 1) % num_samples;
 	counter++;
 
 	// 	// append to csv line
@@ -384,8 +425,8 @@ window.electronAPI.onSerialPacket((packet) => {
 	// }
 	// log only if we weren't calibrating
 	
-	if (csvline != '' && isLogging) {
-		csvline = csvline + ', ' +  String(controlState) + '\n';
+	if (isLogging) {
+		const csvline = csvValues.join(', ') + ', ' + String(controlState) + '\n';
 		window.electronAPI.writeCSV(csvline);
 	}
 	

@@ -36,6 +36,15 @@
     <button id="oxSolenoidPeriod">ox for n seconds</button>
     <input type="checkbox" id="islogging"></input>
   </div>
+
+  <div id="filter-controls">
+    <p id="filter-title">Noise Reduction Filter</p>
+    <button class="filter-button active" data-filter="median-ema">Median + EMA</button>
+    <button class="filter-button" data-filter="median">Median Only</button>
+    <button class="filter-button" data-filter="ema">EMA Only</button>
+    <button class="filter-button" data-filter="freq">Frequency LPF</button>
+    <button class="filter-button" data-filter="none">None</button>
+  </div>
   
   <!-- <button id="calibration">calibrate</button> -->
 	<!-- <canvas id="readings"></canvas> -->
