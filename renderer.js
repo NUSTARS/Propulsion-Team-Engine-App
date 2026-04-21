@@ -170,8 +170,8 @@ for (let i = 0; i < num_graphs; i++) {
 	graphs.push(new SensorGraph(sensorNames[i], makePTInterpFn(1,maxPressures[i])));
 }
 
-solenoid1 = new BinaryActuator("Ox Solenoid (SV 2):", 0, 0)
-solenoid2 = new BinaryActuator("Ethanol Solenoid (SV 1):", 0, 1)
+solenoid1 = new BinaryActuator("Ethanol Solenoid (SV 1):", 0, 0)
+solenoid2 = new BinaryActuator("Ox Solenoid (SV 2):", 0, 1)
 servo1 = new BinaryActuator("Nitrogen Purge (SBV 2):", 0, 2)
 servo2 = new BinaryActuator("Nitrogen In (SBV 1):", 0, 3)
 sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
@@ -252,13 +252,13 @@ window.electronAPI.onSerialPacket((packet) => {
 		medianBuffer[i].sort((a, b) => a - b);
 		let median = medianBuffer[i][(num_samples-1)/2];
 
-	//  ========== AVERAgE ==========
-	//  let sum = 0;
-	//  for (int k = 0; k < num_samples; k++){
-	//  sum += medianBuffer[i][k]
-	//  }
-	//  let avg = sum / num_samples;
-	//  ======== END AVERAgE ========
+	 // ========== AVERAgE ==========
+	 // let sum = 0;
+	 // for (int k = 0; k < num_samples; k++){
+	 //     sum += medianBuffer[i][k]
+	 // }
+	 // let avg = sum / num_samples;
+	 // ======== END AVERAgE ========
 
 		let value = (1-alpha) * median + alpha * prevArray[i];
 		graphs[i].addPoint(counter,value);

@@ -11,7 +11,7 @@
     "start": "electron ."
   },
   "devDependencies": {
-    "electron": "^39.2.7"
+    "electron": "^39.8.8"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
