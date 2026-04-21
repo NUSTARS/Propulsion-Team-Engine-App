@@ -192,28 +192,93 @@ emergencyShutoffButton.addEventListener("click", () => {
 	electronAPI.sendControlMessage(0);
 });
 
+function turnOnEthanol(){
+	controlState |= (1 << 1);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOffEthanol(){
+	controlState &= ~(1 << 1);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOnOxygen(){
+	controlState |= (1 << 0);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOffOxygen(){
+	controlState &= ~(1 << 0);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOnSparkplugAndOxygen(){
+	controlState |= (1 << 4);
+	controlState |= (1 << 0);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOffSparkplug(){
+	controlState &= ~(1 << 4);
+	electronAPI.sendControlMessage(controlState);
+}
+
+function turnOffEthanolAndOxygen(){
+	controlState &= ~(1 << 0);
+	controlState &= ~(1 << 1);
+	electronAPI.sendControlMessage(controlState);
+}
+
+const coating_time = 2000;
+const spark_time = 2000;
+const burning_time = 4000;
+
+// fire igniter functionality
+const fireIgniterButton = document.getElementById("fireIgniter");
+fireIgniterButton.addEventListener("click", () => {
+	// turn on ethanol
+	console.log("time in 1st");
+	turnOnEthanol();
+	timeoutID = setTimeout(() => {
+		console.log("timeout 1st");
+		// turn on oxygen and sparkplug
+		turnOnSparkplugAndOxygen();
+		// start next callback
+		timeoutID = setTimeout(() => {
+			console.log("timeout 2");
+			// turn off sparkplug
+			turnOffSparkplug();
+			// start final callback
+			
+			timeoutID = setTimeout(() => {
+				console.log("timeout 3");
+				turnOffEthanolAndOxygen();
+			}, burning_time - spark_time); // Z - Y ms
+
+		}, spark_time); // Y ms
+
+		
+	}, coating_time); // X ms
+});
+
 // last minute calibration shit fixme
 const ethanolSolenoidPeriodButton = document.getElementById("ethanolSolenoidPeriod");
 ethanolSolenoidPeriodButton.addEventListener("click", () => {
 	console.log("time in");
-	controlState |= (1 << 1);
-	electronAPI.sendControlMessage(controlState);
+	turnOnEthanol();
 	timeoutID = setTimeout(() => {
 		console.log("timeout");
-		controlState &= ~(1 << 1);
-		electronAPI.sendControlMessage(controlState);
+		turnOffEthanol();
 	}, 5000);
 });
 
 const oxSolenoidPeriodButton = document.getElementById("oxSolenoidPeriod");
 oxSolenoidPeriodButton.addEventListener("click", () => {
 	console.log("time in");
-	controlState |= (1 << 0);
-	electronAPI.sendControlMessage(controlState);
+	turnOnOxygen();	
 	timeoutID = setTimeout(() => {
 		console.log("timeout");
-		controlState &= ~(1 << 0);
-		electronAPI.sendControlMessage(controlState);
+		turnOffOxygen();
 	}, 5000);
 });
 let isLogging = false;
@@ -260,7 +325,7 @@ window.electronAPI.onSerialPacket((packet) => {
 	 // let avg = sum / num_samples;
 	 // ======== END AVERAgE ========
 
-		let value = (1-alpha) * median + alpha * prevArray[i];
+		let value = (1-alpha) * median + alpha * prevArray[i]; 
 		graphs[i].addPoint(counter,value);
 		prevArray[i] = value;
 	}
