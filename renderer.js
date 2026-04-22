@@ -291,7 +291,7 @@ isLoggingCheckbox.addEventListener("change",() => {
 
 let counter = 0;
 let isCalibrated = false;
-const num_calibration_samples = 100;
+const num_calibration_samples = 50;
 let calibrationSamplesReceived = num_calibration_samples;
 
 const baseline_psi = 14.671;
@@ -317,6 +317,13 @@ window.electronAPI.onSerialPacket((packet) => {
 		medianBuffer[i].sort((a, b) => a - b);
 		let median = medianBuffer[i][(num_samples-1)/2];
 
+		if (calibrationSamplesReceived < num_calibration_samples) {
+			calibrationBuffer[i] += current;
+			if (calibrationSamplesReceived + 1 == num_calibration_samples) {
+				calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
+			}
+			return;
+		}
 	 // ========== AVERAgE ==========
 	 // let sum = 0;
 	 // for (int k = 0; k < num_samples; k++){
@@ -324,9 +331,9 @@ window.electronAPI.onSerialPacket((packet) => {
 	 // }
 	 // let avg = sum / num_samples;
 	 // ======== END AVERAgE ========
-
-		let value = (1-alpha) * median + alpha * prevArray[i]; 
-		if (counter % 10 == 0) {
+		let delta = calibrationBuffer[i] - baseline_psi;
+		let value = (1-alpha) * median + alpha * prevArray[i] - delta; 
+		if ((counter % 10) == 0) {
 			graphs[i].addPoint(counter,value);
 		}
 		prevArray[i] = value;
@@ -358,12 +365,7 @@ window.electronAPI.onSerialPacket((packet) => {
 		
 	// 	// compute calibration offset
 	// 	//console.log(calibrationSamplesReceived);
-	// 	// if (calibrationSamplesReceived < num_calibration_samples) {
-	// 	// 	calibrationBuffer[i] += current;
-	// 	// 	if (calibrationSamplesReceived + 1 == num_calibration_samples) {
-	// 	// 		calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
-	// 	// 	}
-	// 	// }
+		
 
 	// 	//else {
 	// 		// delta = calibrationBuffer[i] - baseline_psi;
