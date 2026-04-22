@@ -319,7 +319,7 @@ for (let i = 0; i < num_graphs; i++) {
 
 window.electronAPI.onSerialPacket((packet) => {
 	
-	alpha = 0.5;
+	alpha = 0.7;
 	let csvline = '';
 	// MEDIAN
 	for (let i = 0; i < num_graphs; i++) {
