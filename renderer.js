@@ -321,14 +321,14 @@ window.electronAPI.onSerialPacket((packet) => {
 	
 	alpha = 0.6;
 
-	// // MEDIAN
-	// for (let i = 0; i < num_graphs; i++) {
-	// 	medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
-	// 	// only proceed if we have num_samples_samples
-	// 	if (phase != num_samples - 1) {continue};
-	// 	// compute median
-	// 	medianBuffer[i].sort((a, b) => a - b);
-	// 	let median = medianBuffer[i][(num_samples-1)/2];
+	// MEDIAN
+	for (let i = 0; i < num_graphs; i++) {
+		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
+		// only proceed if we have num_samples_samples
+		if (phase != num_samples - 1) {continue};
+		// compute median
+		medianBuffer[i].sort((a, b) => a - b);
+		let median = medianBuffer[i][(num_samples-1)/2];
 
 	 // ========== AVERAgE ==========
 	 // let sum = 0;
