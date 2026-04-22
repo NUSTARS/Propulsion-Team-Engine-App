@@ -162,7 +162,7 @@ function makePTInterpFn(resistance, maxPressure) {
 const num_graphs = 5;
 maxPressures = [600, 600, 600, 300, 300];
 prevArray = [0,0,0,0,0];
-sensorNames = ['ox upstream','chamber','ox stag','ethanol upstream','ethanol stag'];
+sensorNames = ['ox upstream','ox stag','ethanol stag','chamber','ethanol upstream'];
 
 
 let graphs = [];
@@ -170,8 +170,8 @@ for (let i = 0; i < num_graphs; i++) {
 	graphs.push(new SensorGraph(sensorNames[i], makePTInterpFn(1,maxPressures[i])));
 }
 
-solenoid1 = new BinaryActuator("Ox Solenoid (SV 2):", 0, 0)
-solenoid2 = new BinaryActuator("Ethanol Solenoid (SV 1):", 0, 1)
+solenoid1 = new BinaryActuator("Ethanol Solenoid (SV 1):", 0, 0)
+solenoid2 = new BinaryActuator("Ox Solenoid (SV 2):", 0, 1)
 servo1 = new BinaryActuator("Nitrogen Purge (SBV 2):", 0, 2)
 servo2 = new BinaryActuator("Nitrogen In (SBV 1):", 0, 3)
 sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
@@ -330,22 +330,24 @@ window.electronAPI.onSerialPacket((packet) => {
 	// 	medianBuffer[i].sort((a, b) => a - b);
 	// 	let median = medianBuffer[i][(num_samples-1)/2];
 
-	// //  ========== AVERAgE ==========
-	// //  let sum = 0;
-	// //  for (int k = 0; k < num_samples; k++){
-	// //  sum += medianBuffer[i][k]
-	// //  }
-	// //  let avg = sum / num_samples;
-	// //  ======== END AVERAgE ========
+	 // ========== AVERAgE ==========
+	 // let sum = 0;
+	 // for (int k = 0; k < num_samples; k++){
+	 //     sum += medianBuffer[i][k]
+	 // }
+	 // let avg = sum / num_samples;
+	 // ======== END AVERAgE ========
 
-	// 	let value = (1-alpha) * median + alpha * prevArray[i]; 
-	// 	graphs[i].addPoint(counter,value);
-	// 	prevArray[i] = value;
-	// }
-	// phase = (phase + 1) % num_samples;
-	// if (phase == 0) {
-	// 	counter += 1;
-	// }
+		let value = (1-alpha) * median + alpha * prevArray[i]; 
+		if (counter % 10 == 0) {
+			graphs[i].addPoint(counter,value);
+		}
+		prevArray[i] = value;
+	}
+	phase = (phase + 1) % num_samples;
+	if (phase == 0) {
+		counter += 1;
+	}
 
 	// let csvline = '';
 	
