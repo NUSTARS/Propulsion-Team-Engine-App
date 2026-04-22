@@ -289,12 +289,55 @@ isLoggingCheckbox.addEventListener("change",() => {
 
 let selectedFilter = 'median-ema';
 const filterButtons = document.querySelectorAll('.filter-button');
+const filterLatencyLabel = document.getElementById('filter-latency');
+let averagePacketIntervalMs = null;
+let lastPacketTimestampMs = null;
+const packetIntervalSmoothing = 0.1;
+
+function getEstimatedFilterLatencySamples(filterName, alphaValue) {
+	if (filterName === 'none') {
+		return 0;
+	}
+	if (filterName === 'ema') {
+		return (1 - alphaValue) / alphaValue;
+	}
+	if (filterName === 'median') {
+		return (num_samples - 1) / 2;
+	}
+	if (filterName === 'median-ema') {
+		return ((num_samples - 1) / 2) + ((1 - alphaValue) / alphaValue);
+	}
+	if (filterName === 'freq') {
+		return (freqWindowSize - 1) / 2;
+	}
+	if (filterName === 'freq-gaussian') {
+		return (freqGaussianWindowSize - 1) / 2;
+	}
+	if (filterName === 'freq-cascade') {
+		return ((freqWindowSize - 1) / 2) + ((freqCascadeWindowSize - 1) / 2);
+	}
+	return 0;
+}
+
+function updateFilterLatencyDisplay(alphaValue = 0.6) {
+	if (!filterLatencyLabel) {
+		return;
+	}
+	const sampleDelay = getEstimatedFilterLatencySamples(selectedFilter, alphaValue);
+	if (averagePacketIntervalMs == null) {
+		filterLatencyLabel.textContent = `Estimated latency: ${sampleDelay.toFixed(1)} samples`;
+		return;
+	}
+	const latencyMs = sampleDelay * averagePacketIntervalMs;
+	filterLatencyLabel.textContent = `Estimated latency: ${sampleDelay.toFixed(1)} samples (${latencyMs.toFixed(1)} ms)`;
+}
 
 function setSelectedFilter(filterName) {
 	selectedFilter = filterName;
 	filterButtons.forEach((button) => {
 		button.classList.toggle('active', button.dataset.filter === filterName);
 	});
+	updateFilterLatencyDisplay();
 }
 
 filterButtons.forEach((button) => {
@@ -302,6 +345,8 @@ filterButtons.forEach((button) => {
 		setSelectedFilter(button.dataset.filter);
 	});
 });
+
+updateFilterLatencyDisplay();
 
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
 
@@ -318,10 +363,19 @@ let medianBuffer = Array(num_graphs);
 const freqWindowSize = 16;
 const freqCutoffBin = 3;
 let frequencyBuffer = Array(num_graphs);
+const freqGaussianWindowSize = 32;
+const freqGaussianSigmaBin = 1.5;
+let frequencyGaussianBuffer = Array(num_graphs);
+const freqCascadeWindowSize = 24;
+const freqCascadeSigmaBin = 1.2;
+let frequencyCascadeBuffer = Array(num_graphs);
+let frequencyBuffersPrimed = Array(num_graphs).fill(false);
 
 for (let i = 0; i < num_graphs; i++) {
 	medianBuffer[i] = new Array(num_samples).fill(0);
 	frequencyBuffer[i] = new Array(freqWindowSize).fill(0);
+	frequencyGaussianBuffer[i] = new Array(freqGaussianWindowSize).fill(0);
+	frequencyCascadeBuffer[i] = new Array(freqCascadeWindowSize).fill(0);
 }
 
 function frequencyDomainLowPass(signalWindow, cutoffBin) {
@@ -358,16 +412,72 @@ function frequencyDomainLowPass(signalWindow, cutoffBin) {
 	return filtered[n - 1];
 }
 
+function frequencyDomainGaussianLowPass(signalWindow, sigmaBin) {
+	const n = signalWindow.length;
+	let re = new Array(n).fill(0);
+	let im = new Array(n).fill(0);
+
+	for (let k = 0; k < n; k++) {
+		for (let t = 0; t < n; t++) {
+			const angle = (2 * Math.PI * k * t) / n;
+			re[k] += signalWindow[t] * Math.cos(angle);
+			im[k] -= signalWindow[t] * Math.sin(angle);
+		}
+	}
+
+	for (let k = 0; k < n; k++) {
+		const foldedBin = Math.min(k, n - k);
+		const weight = Math.exp(-(foldedBin * foldedBin) / (2 * sigmaBin * sigmaBin));
+		re[k] *= weight;
+		im[k] *= weight;
+	}
+
+	let filtered = new Array(n).fill(0);
+	for (let t = 0; t < n; t++) {
+		let value = 0;
+		for (let k = 0; k < n; k++) {
+			const angle = (2 * Math.PI * k * t) / n;
+			value += re[k] * Math.cos(angle) - im[k] * Math.sin(angle);
+		}
+		filtered[t] = value / n;
+	}
+
+	return filtered[n - 1];
+}
+
 window.electronAPI.onSerialPacket((packet) => {
 	
 	alpha = 0.6;
+	const nowMs = performance.now();
+	if (lastPacketTimestampMs != null) {
+		const observedIntervalMs = nowMs - lastPacketTimestampMs;
+		if (averagePacketIntervalMs == null) {
+			averagePacketIntervalMs = observedIntervalMs;
+		} else {
+			averagePacketIntervalMs = (packetIntervalSmoothing * observedIntervalMs) + ((1 - packetIntervalSmoothing) * averagePacketIntervalMs);
+		}
+	}
+	lastPacketTimestampMs = nowMs;
+	updateFilterLatencyDisplay(alpha);
 	let csvValues = [];
 
 	for (let i = 0; i < num_graphs; i++) {
 		const current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
 		const rawValue = current - calibrationBuffer[i] + baseline_psi;
+		if (!frequencyBuffersPrimed[i]) {
+			frequencyBuffer[i].fill(rawValue);
+			frequencyGaussianBuffer[i].fill(rawValue);
+			frequencyCascadeBuffer[i].fill(rawValue);
+			frequencyBuffersPrimed[i] = true;
+		}
 		frequencyBuffer[i].shift();
 		frequencyBuffer[i].push(rawValue);
+		frequencyGaussianBuffer[i].shift();
+		frequencyGaussianBuffer[i].push(rawValue);
+
+		const firstStageValue = frequencyDomainLowPass(frequencyBuffer[i], freqCutoffBin);
+		frequencyCascadeBuffer[i].shift();
+		frequencyCascadeBuffer[i].push(firstStageValue);
 
 		medianBuffer[i][phase] = rawValue;
 		const sortedSamples = [...medianBuffer[i]].sort((a, b) => a - b);
@@ -382,6 +492,10 @@ window.electronAPI.onSerialPacket((packet) => {
 			value = alpha * medianValue + (1 - alpha) * prevArray[i];
 		} else if (selectedFilter === 'freq') {
 			value = frequencyDomainLowPass(frequencyBuffer[i], freqCutoffBin);
+		} else if (selectedFilter === 'freq-gaussian') {
+			value = frequencyDomainGaussianLowPass(frequencyGaussianBuffer[i], freqGaussianSigmaBin);
+		} else if (selectedFilter === 'freq-cascade') {
+			value = frequencyDomainGaussianLowPass(frequencyCascadeBuffer[i], freqCascadeSigmaBin);
 		}
 
 		graphs[i].addPoint(counter, value);
