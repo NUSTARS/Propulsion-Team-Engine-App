@@ -179,8 +179,7 @@ sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
 checkBoxes = [solenoid1, solenoid2, servo1, servo2, sparkPlug];
 
 // emergency shutoff functionality
-const emergencyShutoffButton = document.getElementById("emergencyShutoff");
-emergencyShutoffButton.addEventListener("click", () => {
+function emergencyShutoffProcedure(){
 	if (timeoutID != null) {
 		clearTimeout(timeoutID);
 		timeoutID = null
@@ -190,6 +189,20 @@ emergencyShutoffButton.addEventListener("click", () => {
 	}
 	controlState = 0;
 	electronAPI.sendControlMessage(0);
+}
+
+const emergencyShutoffButton = document.getElementById("emergencyShutoff");
+
+// trigger on 'CAPSLOCK' pressed
+document.addEventListener("keydown", (event) => {
+	if (event.key == 'CapsLock'){
+		emergencyShutoffProcedure();
+	}
+})
+
+// trigger on click
+emergencyShutoffButton.addEventListener("click", () => {
+	emergencyShutoffProcedure();
 });
 
 function turnOnEthanol(){
