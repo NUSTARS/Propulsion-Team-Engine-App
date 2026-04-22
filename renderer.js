@@ -346,8 +346,6 @@ filterButtons.forEach((button) => {
 	});
 });
 
-updateFilterLatencyDisplay();
-
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
 
 let counter = 0;
@@ -377,6 +375,8 @@ for (let i = 0; i < num_graphs; i++) {
 	frequencyGaussianBuffer[i] = new Array(freqGaussianWindowSize).fill(0);
 	frequencyCascadeBuffer[i] = new Array(freqCascadeWindowSize).fill(0);
 }
+
+updateFilterLatencyDisplay();
 
 function frequencyDomainLowPass(signalWindow, cutoffBin) {
 	const n = signalWindow.length;
