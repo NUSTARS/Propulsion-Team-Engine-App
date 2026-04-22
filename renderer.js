@@ -350,7 +350,7 @@ window.electronAPI.onSerialPacket((packet) => {
 	}
 
 	// let csvline = '';
-	
+	/*
 	for (let i = 0; i < num_graphs; i++) {
 		const current = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
 		
@@ -365,7 +365,7 @@ window.electronAPI.onSerialPacket((packet) => {
 		prevArray[i] = value;
 	}
 	counter++;
-
+	*/
 	// 	// append to csv line
 	// 	csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
 		
