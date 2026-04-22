@@ -179,8 +179,7 @@ sparkPlug = new BinaryActuator("Spark Plug:", 0, 4)
 checkBoxes = [solenoid1, solenoid2, servo1, servo2, sparkPlug];
 
 // emergency shutoff functionality
-const emergencyShutoffButton = document.getElementById("emergencyShutoff");
-emergencyShutoffButton.addEventListener("click", () => {
+function emergencyShutoffProcedure(){
 	if (timeoutID != null) {
 		clearTimeout(timeoutID);
 		timeoutID = null
@@ -190,6 +189,20 @@ emergencyShutoffButton.addEventListener("click", () => {
 	}
 	controlState = 0;
 	electronAPI.sendControlMessage(0);
+}
+
+const emergencyShutoffButton = document.getElementById("emergencyShutoff");
+
+// trigger on 'CAPSLOCK' pressed
+document.addEventListener("keydown", (event) => {
+	if (event.key == 'CapsLock'){
+		emergencyShutoffProcedure();
+	}
+})
+
+// trigger on click
+emergencyShutoffButton.addEventListener("click", () => {
+	emergencyShutoffProcedure();
 });
 
 function turnOnEthanol(){
@@ -308,31 +321,31 @@ window.electronAPI.onSerialPacket((packet) => {
 	
 	alpha = 0.6;
 
-	// MEDIAN
-	for (let i = 0; i < num_graphs; i++) {
-		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
-		// only proceed if we have num_samples_samples
-		if (phase != num_samples - 1) {continue};
-		// compute median
-		medianBuffer[i].sort((a, b) => a - b);
-		let median = medianBuffer[i][(num_samples-1)/2];
+	// // MEDIAN
+	// for (let i = 0; i < num_graphs; i++) {
+	// 	medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
+	// 	// only proceed if we have num_samples_samples
+	// 	if (phase != num_samples - 1) {continue};
+	// 	// compute median
+	// 	medianBuffer[i].sort((a, b) => a - b);
+	// 	let median = medianBuffer[i][(num_samples-1)/2];
 
-	//  ========== AVERAgE ==========
-	//  let sum = 0;
-	//  for (int k = 0; k < num_samples; k++){
-	//  sum += medianBuffer[i][k]
-	//  }
-	//  let avg = sum / num_samples;
-	//  ======== END AVERAgE ========
+	// //  ========== AVERAgE ==========
+	// //  let sum = 0;
+	// //  for (int k = 0; k < num_samples; k++){
+	// //  sum += medianBuffer[i][k]
+	// //  }
+	// //  let avg = sum / num_samples;
+	// //  ======== END AVERAgE ========
 
-		let value = (1-alpha) * median + alpha * prevArray[i]; 
-		graphs[i].addPoint(counter,value);
-		prevArray[i] = value;
-	}
-	phase = (phase + 1) % num_samples;
-	if (phase == 0) {
-		counter += 1;
-	}
+	// 	let value = (1-alpha) * median + alpha * prevArray[i]; 
+	// 	graphs[i].addPoint(counter,value);
+	// 	prevArray[i] = value;
+	// }
+	// phase = (phase + 1) % num_samples;
+	// if (phase == 0) {
+	// 	counter += 1;
+	// }
 
 	// let csvline = '';
 	
