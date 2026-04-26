@@ -304,13 +304,13 @@ isLoggingCheckbox.addEventListener("change",() => {
 
 let counter = 0;
 let isCalibrated = false;
-const num_calibration_samples = 50;
-let calibrationSamplesReceived = num_calibration_samples;
+const num_calibration_samples = 100;
+let calibrationSamplesReceived = 0;
 
 const baseline_psi = 14.671;
 let phase = 0; // on phase 2 we take median of samples and then go back to phase 0
 const num_samples = 3;
-let calibrationBuffer = Array(num_graphs).fill(baseline_psi);
+let calibrationBuffer = Array(num_graphs).fill(0);
 let medianBuffer = Array(num_graphs);
 
 for (let i = 0; i < num_graphs; i++) {
@@ -319,8 +319,8 @@ for (let i = 0; i < num_graphs; i++) {
 
 window.electronAPI.onSerialPacket((packet) => {
 	
-	alpha = 0.6;
-
+	alpha = 0.7;
+	let csvline = '';
 	// MEDIAN
 	for (let i = 0; i < num_graphs; i++) {
 		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
@@ -331,11 +331,23 @@ window.electronAPI.onSerialPacket((packet) => {
 		let median = medianBuffer[i][(num_samples-1)/2];
 
 		if (calibrationSamplesReceived < num_calibration_samples) {
-			calibrationBuffer[i] += current;
+			calibrationBuffer[i] += median;
 			if (calibrationSamplesReceived + 1 == num_calibration_samples) {
 				calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
+				console.log(calibrationBuffer[i]);
 			}
-			return;
+			
+			console.log(calibrationSamplesReceived);
+		}
+		else {
+			let delta = calibrationBuffer[i] - baseline_psi;
+			console.log(delta);
+			let value = (1-alpha) * (median - delta) + (alpha * prevArray[i]);
+			if ((counter % 10) == 0) {
+				graphs[i].addPoint(counter,value);
+			}
+			csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
+			prevArray[i] = value;
 		}
 	 // ========== AVERAgE ==========
 	 // let sum = 0;
@@ -344,16 +356,13 @@ window.electronAPI.onSerialPacket((packet) => {
 	 // }
 	 // let avg = sum / num_samples;
 	 // ======== END AVERAgE ========
-		let delta = calibrationBuffer[i] - baseline_psi;
-		let value = (1-alpha) * median + alpha * prevArray[i] - delta; 
-		if ((counter % 10) == 0) {
-			graphs[i].addPoint(counter,value);
-		}
-		prevArray[i] = value;
+		
 	}
+	
 	phase = (phase + 1) % num_samples;
 	if (phase == 0) {
 		counter += 1;
+		calibrationSamplesReceived += 1;
 	}
 
 	// let csvline = '';
@@ -373,8 +382,8 @@ window.electronAPI.onSerialPacket((packet) => {
 	}
 	counter++;
 	*/
-	// 	// append to csv line
-	// 	csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
+		// append to csv line
+		//csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
 		
 	// 	// compute calibration offset
 	// 	//console.log(calibrationSamplesReceived);
@@ -406,5 +415,5 @@ window.electronAPI.onSerialPacket((packet) => {
 		window.electronAPI.writeCSV(csvline);
 	}
 	
-	calibrationSamplesReceived += 1;
+	
 })
