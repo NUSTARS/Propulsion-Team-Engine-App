@@ -296,14 +296,22 @@ oxSolenoidPeriodButton.addEventListener("click", () => {
 });
 let isLogging = false;
 const isLoggingCheckbox = document.getElementById("islogging");
-isLoggingCheckbox.addEventListener("change", async () => {
+isLoggingCheckbox.addEventListener("change", () => {
 	isLogging = !isLogging;
-	if (!isLogging) {
-		window.electronAPI.openFileDialog().then((filePath) => {
-			console.log(filePath);
-			electronAPI.copyCSV(filePath);
+	if (!isLogging) { // we turned it off
+		window.electronAPI.openFileDialog().then((p) => {
+			console.log(p);
+			electronAPI.copyCSV(p);
 			electronAPI.clearCSV();
 		});
+	}
+	else { // we turned it on
+		let csvHeading = '';
+		checkBoxes.forEach((actuator) => {
+			csvHeading += actuator.name +', '
+		})
+		csvHeading += "Control State,\n"
+		window.electronAPI.writeCSV(csvHeading);
 	}
 });
 

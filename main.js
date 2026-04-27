@@ -76,15 +76,17 @@ ipcMain.on('load-main', (_event, csvPath) => {
 });
 
 function handleFileOpen() {
-	dialog.showOpenDialog(mainWindow, {
+	
+	return dialog.showOpenDialog(mainWindow, {
   			properties: ['openFile','promptToCreate'],
 			filters: [
-				{name: 'csv', extensions: ['txt']},
+				{name: 'csv', extensions: ['csv']},
 			]
 		}).then(result => {
 			if (!result.canceled) {
 				console.log(result.filePaths[0]);
-				return result.filePaths[0];
+				let p = result.filePaths[0];
+				return p;
 			}
   			//console.log(result.canceled)
   			//console.log(result.filePaths)
