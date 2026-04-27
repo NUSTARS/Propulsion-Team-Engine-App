@@ -16,5 +16,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	writeCSV: (line) => fs.appendFile("./log.csv", line, (err) => console.log(err)),
 	copyCSV: (path) => fs.copyFile("./log.csv", path, (err) => console.log(err)),
 	clearCSV: () => fs.unlink("./log.csv", (err) => console.log(err)),
-	openFileDialog: (fn) => dialog.showOpenDialog((filename) => fn(filename)),
+	openFileDialog: () => ipcRenderer.invoke("dialog:openFile"),
 });

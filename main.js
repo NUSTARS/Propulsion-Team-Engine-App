@@ -3,12 +3,13 @@
 // main electron process or something like that
 
 // requires
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { SerialPort } = require('serialport')
 const { ByteLengthParser } = require('@serialport/parser-byte-length')
 const { PacketLengthParser } = require('@serialport/parser-packet-length')
+
 
 // singleton main BrowserWindow object
 let mainWindow;
@@ -72,9 +73,29 @@ ipcMain.on('load-main', (_event, csvPath) => {
 	mainWindow.loadFile('index.html');
 	console.log(csvPath);
 	startLogging(csvPath);
-
-	
 });
+
+function handleFileOpen() {
+	dialog.showOpenDialog(mainWindow, {
+  			properties: ['openFile','promptToCreate'],
+			filters: [
+				{name: 'csv', extensions: ['txt']},
+			]
+		}).then(result => {
+			if (!result.canceled) {
+				console.log(result.filePaths[0]);
+				return result.filePaths[0];
+			}
+  			//console.log(result.canceled)
+  			//console.log(result.filePaths)
+		}).catch(err => {
+  			console.log(err)
+			return err;
+		})
+}
+
+ipcMain.handle("dialog:openFile", handleFileOpen);
+
 
 
 // handle sending bytes when we get the message

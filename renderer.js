@@ -296,8 +296,15 @@ oxSolenoidPeriodButton.addEventListener("click", () => {
 });
 let isLogging = false;
 const isLoggingCheckbox = document.getElementById("islogging");
-isLoggingCheckbox.addEventListener("change",() => {
+isLoggingCheckbox.addEventListener("change", async () => {
 	isLogging = !isLogging;
+	if (!isLogging) {
+		window.electronAPI.openFileDialog().then((filePath) => {
+			console.log(filePath);
+			electronAPI.copyCSV(filePath);
+			electronAPI.clearCSV();
+		});
+	}
 });
 
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
