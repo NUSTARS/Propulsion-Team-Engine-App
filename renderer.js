@@ -426,7 +426,7 @@ window.electronAPI.onSerialPacket((packet) => {
 	if (isLogging) {
 		let csvline = String(Date.now() - loggingStartTime);
 		for (let i = 0; i < num_graphs; i++) {
-			csvline += (i == 0 ? '' : ', ') + filteredValues[i] + ', ' + (isFinite(rawValues[i]) ? rawValues[i].toFixed(3) : '');
+			csvline += ', ' + filteredValues[i] + ', ' + (isFinite(rawValues[i]) ? rawValues[i].toFixed(3) : '');
 		}
 		let isCalibrating = calibrationSamplesReceived < num_calibration_samples ? 1 : 0;
 		csvline += ', ' + String(controlState) + ', ' + isCalibrating + '\n';
