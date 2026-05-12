@@ -242,9 +242,9 @@ function turnOffEthanolAndOxygen(){
 	electronAPI.sendControlMessage(controlState);
 }
 
-const coating_time = 2000;
-const spark_time = 2000;
-const burning_time = 4000;
+const coating_time = .101 * 1000;;
+const spark_time = 1.5 * 1000;
+const burning_time = 0;
 
 // fire igniter functionality
 const fireIgniterButton = document.getElementById("fireIgniter");
@@ -295,13 +295,15 @@ oxSolenoidPeriodButton.addEventListener("click", () => {
 	}, 5000);
 });
 let isLogging = false;
+let loggingStartTime = 0;
 const isLoggingCheckbox = document.getElementById("islogging");
 isLoggingCheckbox.addEventListener("change", () => {
 	isLogging = !isLogging;
-	if (!isLogging) { // we turned it off
-		window.electronAPI.openFileDialog().then((p) => {
-			console.log(p);
-			electronAPI.copyCSV(p);
+	if (isLogging) loggingStartTime = Date.now();
+	if (!isLogging) {
+		window.electronAPI.openFileDialog().then((filePath) => {
+			console.log(filePath);
+			electronAPI.copyCSV(filePath);
 			electronAPI.clearCSV();
 		});
 	}
@@ -333,47 +335,51 @@ for (let i = 0; i < num_graphs; i++) {
 }
 
 window.electronAPI.onSerialPacket((packet) => {
-	
+
 	alpha = 0.7;
-	let csvline = '';
+	let filteredValues = new Array(num_graphs).fill('');
 	// MEDIAN
+	let rawValues = [];
 	for (let i = 0; i < num_graphs; i++) {
 		medianBuffer[i][phase] = graphs[i].interpFn(packet[2*i] + ((packet[2*i+1]) << 8));
-		// only proceed if we have num_samples_samples
-		if (phase != num_samples - 1) {continue};
-		// compute median
-		medianBuffer[i].sort((a, b) => a - b);
-		let median = medianBuffer[i][(num_samples-1)/2];
-
-		if (calibrationSamplesReceived < num_calibration_samples) {
-			calibrationBuffer[i] += median;
-			if (calibrationSamplesReceived + 1 == num_calibration_samples) {
-				calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
-				console.log(calibrationBuffer[i]);
-			}
-			
-			console.log(calibrationSamplesReceived);
-		}
-		else {
-			let delta = calibrationBuffer[i] - baseline_psi;
-			console.log(delta);
-			let value = (1-alpha) * (median - delta) + (alpha * prevArray[i]);
-			if ((counter % 10) == 0) {
-				graphs[i].addPoint(counter,value);
-			}
-			csvline += (i == 0 ? '' : ', ') + value.toFixed(3);
-			prevArray[i] = value;
-		}
-	 // ========== AVERAgE ==========
-	 // let sum = 0;
-	 // for (int k = 0; k < num_samples; k++){
-	 //     sum += medianBuffer[i][k]
-	 // }
-	 // let avg = sum / num_samples;
-	 // ======== END AVERAgE ========
-		
+		rawValues.push(medianBuffer[i][phase]);
 	}
-	
+	if (phase == num_samples - 1) {
+		for (let i = 0; i < num_graphs; i++) {
+			// compute median
+			let sorted = [...medianBuffer[i]].sort((a, b) => a - b);
+			let median = sorted[(num_samples-1)/2];
+
+			if (calibrationSamplesReceived < num_calibration_samples) {
+				calibrationBuffer[i] += median;
+				if (calibrationSamplesReceived + 1 == num_calibration_samples) {
+					calibrationBuffer[i] = calibrationBuffer[i] / num_calibration_samples;
+					console.log(calibrationBuffer[i]);
+				}
+
+				console.log(calibrationSamplesReceived);
+			}
+			else {
+				let delta = calibrationBuffer[i] - baseline_psi;
+				console.log(delta);
+				let value = (1-alpha) * (median - delta) + (alpha * prevArray[i]);
+				if ((counter % 10) == 0) {
+					graphs[i].addPoint(counter,value);
+				}
+				filteredValues[i] = value.toFixed(3);
+				prevArray[i] = value;
+			}
+		 // ========== AVERAgE ==========
+		 // let sum = 0;
+		 // for (int k = 0; k < num_samples; k++){
+		 //     sum += medianBuffer[i][k]
+		 // }
+		 // let avg = sum / num_samples;
+		 // ======== END AVERAgE ========
+
+		}
+	}
+
 	phase = (phase + 1) % num_samples;
 	if (phase == 0) {
 		counter += 1;
@@ -425,8 +431,13 @@ window.electronAPI.onSerialPacket((packet) => {
 	// }
 	// log only if we weren't calibrating
 	
-	if (csvline != '' && isLogging) {
-		csvline = csvline + ', ' +  String(controlState) + '\n';
+	if (isLogging) {
+		let csvline = String(Date.now() - loggingStartTime);
+		for (let i = 0; i < num_graphs; i++) {
+			csvline += (i == 0 ? '' : ', ') + filteredValues[i] + ', ' + (isFinite(rawValues[i]) ? rawValues[i].toFixed(3) : '');
+		}
+		let isCalibrating = calibrationSamplesReceived < num_calibration_samples ? 1 : 0;
+		csvline += ', ' + String(controlState) + ', ' + isCalibrating + '\n';
 		window.electronAPI.writeCSV(csvline);
 	}
 	
