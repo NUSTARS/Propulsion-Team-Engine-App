@@ -307,14 +307,6 @@ isLoggingCheckbox.addEventListener("change", () => {
 			electronAPI.clearCSV();
 		});
 	}
-	else { // we turned it on
-		let csvHeading = '';
-		checkBoxes.forEach((actuator) => {
-			csvHeading += actuator.name +', '
-		})
-		csvHeading += "Control State,\n"
-		window.electronAPI.writeCSV(csvHeading);
-	}
 });
 
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
