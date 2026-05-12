@@ -76,20 +76,17 @@ ipcMain.on('load-main', (_event, csvPath) => {
 });
 
 function handleFileOpen() {
-	dialog.showOpenDialog(mainWindow, {
-  			properties: ['openFile','promptToCreate'],
+	return dialog.showSaveDialog(mainWindow, {
 			filters: [
-				{name: 'csv', extensions: ['txt']},
+				{name: 'csv', extensions: ['csv']},
 			]
 		}).then(result => {
 			if (!result.canceled) {
-				console.log(result.filePaths[0]);
-				return result.filePaths[0];
+				console.log(result.filePath);
+				return result.filePath;
 			}
-  			//console.log(result.canceled)
-  			//console.log(result.filePaths)
 		}).catch(err => {
-  			console.log(err)
+			console.log(err);
 			return err;
 		})
 }
@@ -118,7 +115,7 @@ function startLogging(csvPath) {
 	parser = sp.pipe(new PacketLengthParser({delimeter: 0xAA, packetOverhead: 2}));
 	sp.open(() => {sp.flush()}); //
 	
-	// TODO write top row of CSV
+	fs.writeFile('./log.csv', 'elapsed_ms, ox_upstream_filtered, ox_upstream_raw, ox_stag_filtered, ox_stag_raw, ethanol_stag_filtered, ethanol_stag_raw, chamber_filtered, chamber_raw, ethanol_upstream_filtered, ethanol_upstream_raw, controlState, calibrating\n', (err) => { if (err) console.log(err); });
 
 	parser.on('data', (chunk) => {
 		chunk = chunk.slice(2);
@@ -129,21 +126,21 @@ function startLogging(csvPath) {
 		mainWindow.webContents.send('serial-packet', chunk);
 		
 		// only log if we have an actual title
-		if (csvPath != '.csv') {
-			let csvline = '';
-			for (const val of chunk) {
-				if (csvline == '') {
-					csvline = csvline + String(val);
-				}
-				else {
-					csvline = csvline + ', ' + String(val)
-				}
-			}
-			csvline = csvline + '\n';
-			
-			fs.appendFile(csvPath, csvline, (err) => {});
-			
-		}
+		// if (csvPath != '.csv') {
+		// 	let csvline = '';
+		// 	for (const val of chunk) {
+		// 		if (csvline == '') {
+		// 			csvline = csvline + String(val);
+		// 		}
+		// 		else {
+		// 			csvline = csvline + ', ' + String(val)
+		// 		}
+		// 	}
+		// 	csvline = csvline + '\n';
+		//
+		// 	fs.appendFile(csvPath, csvline, (err) => {});
+		//
+		// }
 		
 		/*
 		for (const value of chunk) {
