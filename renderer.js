@@ -309,6 +309,13 @@ isLoggingCheckbox.addEventListener("change", () => {
 	}
 });
 
+const restartCalibrationButton = document.getElementById("restartCalibration");
+restartCalibrationButton.addEventListener("click", () => {
+	calibrationSamplesReceived = 0;
+	calibrationBuffer = Array(num_graphs).fill(0);
+	prevArray = Array(num_graphs).fill(0);
+});
+
 // Main execution (we could put it in a function, but idk what to call it (this is me attempting to be funny))
 
 let counter = 0;
@@ -427,7 +434,7 @@ window.electronAPI.onSerialPacket((packet) => {
 		let csvline = String(Date.now() - loggingStartTime);
 		for (let i = 0; i < num_graphs; i++) {
 			csvline += ', ' + filteredValues[i] + ', ' + (isFinite(rawValues[i]) ? rawValues[i].toFixed(3) : '');
-		}
+		}	``
 		let isCalibrating = calibrationSamplesReceived < num_calibration_samples ? 1 : 0;
 		csvline += ', ' + String(controlState) + ', ' + isCalibrating + '\n';
 		window.electronAPI.writeCSV(csvline);
